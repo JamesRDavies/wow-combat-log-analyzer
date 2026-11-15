@@ -2,7 +2,7 @@ import '@tabler/core/dist/css/tabler.min.css';
 import './style.css'
 
 import { renderHeader } from './components/header';
-import { renderFileUpload } from './components/file-upload';
+import { renderFileUpload, initFileUpload } from './components/file-upload';
 import { renderResults } from './components/results';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
@@ -21,3 +21,4 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   </div>
 `
 
+initFileUpload();

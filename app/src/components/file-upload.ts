@@ -1,3 +1,22 @@
+export function initFileUpload(): void {
+  const fileInput = document.querySelector<HTMLInputElement>('#log-file');
+  const fileDetails = document.querySelector<HTMLParagraphElement>('#file-details');
+
+  fileInput?.addEventListener('change', () => {
+    const file = fileInput.files?.[0];
+
+    if (file && fileDetails) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+
+      fileDetails.textContent = `${file.name} (${sizeMB} MB)`;
+    } else if (fileDetails) {
+      fileDetails.textContent = '';
+    }
+  });
+}
+
+
+
 export function renderFileUpload(): string {
   return `
     <section class="card mb-4">
@@ -18,7 +37,7 @@ export function renderFileUpload(): string {
             id="log-file"
             class="form-control"
             accept=".txt"
-          >
+          ><p id="file-details" class="text-secondary mt-2"></p>
         </div>
 
         <button
