@@ -38,12 +38,12 @@ function validateFile(file: File | undefined): string | null {
 
   // Check the filename extension
   if (!file.name.toLowerCase().endsWith('.txt')) {
-    return 'Selected file must have a .txt extension.';
+    return 'Invalid file type. Please upload a .txt file.';
   }
 
   // Check whether the file is empty
   if (file.size === 0) {
-    return 'Selected file is empty.';
+    return 'Selected file is empty. Please upload a valid combat log file.';
   }
 
   // Return null if everything is valid
