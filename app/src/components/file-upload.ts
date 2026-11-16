@@ -1,11 +1,25 @@
 export function initFileUpload(): void {
   const fileInput = document.querySelector<HTMLInputElement>('#log-file');
   const fileDetails = document.querySelector<HTMLParagraphElement>('#file-details');
+  const fileError = document.querySelector<HTMLParagraphElement>('#file-error');
 
   fileInput?.addEventListener('change', () => {
     const file = fileInput.files?.[0];
+    const validationError = validateFile(file);
 
-    if (file && fileDetails) {
+    if (fileError) {
+      fileError.textContent = validationError;
+      fileError.hidden = !validationError;
+    }
+
+    if (validationError) {
+      if (fileDetails) {
+        fileDetails.textContent = '';
+      }
+      return;
+    }
+
+    if (file && fileDetails != null) {
       const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
 
       fileDetails.textContent = `${file.name} (${sizeMB} MB)`;
@@ -15,6 +29,26 @@ export function initFileUpload(): void {
   });
 }
 
+
+function validateFile(file: File | undefined): string | null {
+  // Check whether a file was selected
+  if (!file) {
+    return 'No file selected.';
+  }
+
+  // Check the filename extension
+  if (!file.name.toLowerCase().endsWith('.txt')) {
+    return 'Selected file must have a .txt extension.';
+  }
+
+  // Check whether the file is empty
+  if (file.size === 0) {
+    return 'Selected file is empty.';
+  }
+
+  // Return null if everything is valid
+  return null;
+}
 
 
 export function renderFileUpload(): string {
@@ -38,6 +72,7 @@ export function renderFileUpload(): string {
             class="form-control"
             accept=".txt"
           ><p id="file-details" class="text-secondary mt-2"></p>
+          <p id="file-error" class="text-danger mt-2" role="alert" hidden></p>
         </div>
 
         <button
