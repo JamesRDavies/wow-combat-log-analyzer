@@ -12,6 +12,13 @@ export async function inspectLog(file: File): Promise<InspectionResult> {
 
     const lines = sample.split(/\r?\n/);
 
+    // When log-reader is done Replace sample and lines with
+    // for await (const line of readLogLines(file)) {
+        // Inspect record
+        // Update totalRecords
+        // Update validRecords or malformedRecords
+    // }
+
     // Remove the incomplete final line, or the empty entry
     // produced by a trailing newline.
     if (lines.length > 0) {

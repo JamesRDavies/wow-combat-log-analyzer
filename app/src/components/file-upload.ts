@@ -1,5 +1,6 @@
 import { inspectLog } from "../parser/log-inspector";
 import { displayInspectionResults } from './results';
+import { readLogLines } from '../parser/log-reader';
 
 export function initFileUpload(): void {
   const fileInput = document.querySelector<HTMLInputElement>('#log-file');
@@ -55,12 +56,19 @@ export function initFileUpload(): void {
           fileError.hidden = true;
         }
 
-        const inspectResult = await inspectLog(file);
-        
-        displayInspectionResults(inspectResult);
+        try{
+          const inspectResult = await inspectLog(file);
+
+          displayInspectionResults(inspectResult);
+        } catch (error) {
+          console.error('Combat log inspection failed:', error);
+
+          if (fileError) {
+            fileError.textContent = 'An error occurred while processing the file.';
+            fileError.hidden = false;
+          }
+        }
       }
-
-
     }
   });
 
