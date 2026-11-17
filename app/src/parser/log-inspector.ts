@@ -1,4 +1,5 @@
 import { readLogLines } from '../parser/log-reader';
+import { parseRecordHeader } from './record-parser';
 
 export interface InspectionResult {
   totalRecords: number;
@@ -7,9 +8,6 @@ export interface InspectionResult {
 }
 
 export async function inspectLog(file: File, onProgress?: (bytesRead: number, totalBytes: number) => void | Promise<void>): Promise<InspectionResult> {
-    const recordPattern =
-    /^(\d{1,2}\/\d{1,2}\/\d{4}\s+\d{2}:\d{2}:\d{2}\.\d+)\s{2,}([A-Z][A-Z0-9_]*)(?:,|$)/;
-
     const result: InspectionResult = {
         totalRecords: 0,
         validRecords: 0,
@@ -23,9 +21,9 @@ export async function inspectLog(file: File, onProgress?: (bytesRead: number, to
 
         result.totalRecords++;
 
-        const match = line.match(recordPattern);
+        const header = parseRecordHeader(line);
 
-        if (match) {
+        if (header) {
             result.validRecords++;
         } else {
             result.malformedRecords++;
