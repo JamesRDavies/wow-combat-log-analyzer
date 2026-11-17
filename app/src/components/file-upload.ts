@@ -1,12 +1,16 @@
 import { inspectLog } from "../parser/log-inspector";
 import { displayInspectionResults } from './results';
-import { readLogLines } from '../parser/log-reader';
 
 export function initFileUpload(): void {
   const fileInput = document.querySelector<HTMLInputElement>('#log-file');
   const fileDetails = document.querySelector<HTMLParagraphElement>('#file-details');
   const fileError = document.querySelector<HTMLParagraphElement>('#file-error');
   const importButton = document.querySelector<HTMLButtonElement>('#import-button');
+  const processingStatus = document.querySelector<HTMLDivElement>('#processing-status');
+  const progressPercentage = document.querySelector<HTMLSpanElement>('#processing-percentage');
+  const progressBar = document.querySelector<HTMLDivElement>('.progress-bar');
+  const progressContainer = document.querySelector<HTMLDivElement>('.progress');
+  const processingLabel = document.querySelector<HTMLSpanElement>('#processing-label');
 
   fileInput?.addEventListener('change', () => {
     const file = fileInput.files?.[0];
@@ -14,6 +18,24 @@ export function initFileUpload(): void {
     if (importButton) {
       importButton.disabled = true;
     }
+
+    if (processingStatus) {
+      processingStatus.hidden = true;
+    }
+
+    if (processingLabel) {
+      processingLabel.textContent = 'Processing combat log...';
+    }
+
+    if (progressBar) {
+      progressBar.style.width = '0%';
+    }
+
+    if (progressPercentage) {
+      progressPercentage.textContent = '0%';
+    }
+
+    progressContainer?.setAttribute('aria-valuenow', '0');
 
     if (fileError) {
       fileError.textContent = validationError;
@@ -56,18 +78,92 @@ export function initFileUpload(): void {
           fileError.hidden = true;
         }
 
+        if (importButton) {
+          importButton.disabled = true;
+        }
+
+        if (fileInput) {
+          fileInput.disabled = true;
+        }
+
+        if (processingStatus) {
+          processingStatus.hidden = false;
+        }
+
+        if (progressBar) {
+          progressBar.style.width = '0%';
+        }
+
+        if (progressPercentage) {
+          progressPercentage.textContent = '0%';
+        }
+
+        progressContainer?.setAttribute('aria-valuenow', '0');
+
+        if (processingLabel) {
+          processingLabel.textContent = 'Processing combat log...';
+        }
+
         try{
-          const inspectResult = await inspectLog(file);
+          let lastPercentage = -1;
+
+          const inspectResult = await inspectLog(file, async (bytesRead, totalBytes) => {
+            const percentage = Math.round((bytesRead / totalBytes) * 100);
+
+            // Only update the UI when the percentage changes
+            if (percentage === lastPercentage) {
+              return;
+            }
+
+            lastPercentage = percentage;
+
+            if (progressBar) {
+              progressBar.style.width = `${percentage}%`;
+            }
+
+            if (progressPercentage) {
+              progressPercentage.textContent = `${percentage}%`;
+              progressContainer?.setAttribute('aria-valuenow', percentage.toString());
+            }
+
+            await new Promise<void>((resolve) => {
+              requestAnimationFrame(() => {
+                setTimeout(resolve, 0);
+              });
+            });
+          });
 
           displayInspectionResults(inspectResult);
+
+          if (processingLabel) {
+            processingLabel.textContent = 'Inspection complete';
+          }
+
         } catch (error) {
+
           console.error('Combat log inspection failed:', error);
+
+          if (processingStatus) {
+            processingStatus.hidden = true;
+          }
 
           if (fileError) {
             fileError.textContent = 'An error occurred while processing the file.';
             fileError.hidden = false;
           }
+
+        } finally {
+
+          if (importButton) {
+            importButton.disabled = false;
+          }
+
+          if (fileInput) {
+            fileInput.disabled = false;
+          }
         }
+
+        
       }
     }
   });
@@ -126,15 +222,27 @@ export function renderFileUpload(): string {
         </button>
 
         <div id="processing-status" class="mt-4" hidden>
-          <p class="text-secondary">Processing combat log...</p>
-
-          <div class="progress progress-sm"
-               role="progressbar"
-               aria-label="Processing combat log">
-            <div class="progress-bar progress-bar-indeterminate"></div>
+          <div class="d-flex justify-content-between mb-2">
+            <span id="processing-label" class="text-secondary">
+              Processing combat log...
+            </span>
+            <span id="processing-percentage">0%</span>
           </div>
-        </div>
 
+          <div
+            class="progress progress-sm"
+            role="progressbar"
+            aria-label="Processing combat log"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          >
+            <div id="processing-progress-bar"
+                class="progress-bar"
+                style="width: 0%">
+            </div>
+          </div>          
+        </div>
       </div>
     </section>
   `;

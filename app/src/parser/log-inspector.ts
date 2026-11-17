@@ -6,7 +6,7 @@ export interface InspectionResult {
   malformedRecords: number;
 }
 
-export async function inspectLog(file: File): Promise<InspectionResult> {
+export async function inspectLog(file: File, onProgress?: (bytesRead: number, totalBytes: number) => void | Promise<void>): Promise<InspectionResult> {
     const recordPattern =
     /^(\d{1,2}\/\d{1,2}\/\d{4}\s+\d{2}:\d{2}:\d{2}\.\d+)\s{2,}([A-Z][A-Z0-9_]*)(?:,|$)/;
 
@@ -16,7 +16,7 @@ export async function inspectLog(file: File): Promise<InspectionResult> {
         malformedRecords: 0
     };
 
-    for await (const line of readLogLines(file)) {
+    for await (const line of readLogLines(file, onProgress)) {
         if (!line.trim()) {
             continue;
         }

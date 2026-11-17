@@ -1,15 +1,21 @@
-export async function* readLogLines(file: File): AsyncGenerator<string> {
+export async function* readLogLines(file: File, onProgress?: (bytesRead: number, totalBytes:number) => void | Promise<void>): AsyncGenerator<string> {
     const stream = file.stream();
     const reader = stream.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
 
     try{
+        let bytesRead = 0;
+
         while(true) {
             const { value, done } = await reader.read();
             if (done) {
                 break;
             }
+
+            bytesRead += value.byteLength;
+
+            await onProgress?.(bytesRead, file.size);
 
             buffer += decoder.decode(value, { stream: true });
 
