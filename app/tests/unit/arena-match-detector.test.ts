@@ -20,7 +20,13 @@ describe('detectArenaMatches', () => {
                 startTimestamp: '10/27/2026 21:31:00.1000',
                 endTimestamp: '10/27/2026 21:35:00.1000',
                 startPayload: '1504,42,Rated Solo Shuffle,0',
-                endPayload: '1'
+                endPayload: '1',
+                rounds: [
+                    {
+                        startTimestamp: '10/27/2026 21:31:00.1000',
+                        startPayload: '1504,42,Rated Solo Shuffle,0'
+                    }
+                ]
             }
         ]);
     });
@@ -46,14 +52,26 @@ describe('detectArenaMatches', () => {
                 startTimestamp: '10/27/2026 21:31:00.1000',
                 endTimestamp: '10/27/2026 21:35:00.1000',
                 startPayload: '1504,42,Rated Solo Shuffle,0',
-                endPayload: '1'
+                endPayload: '1',
+                rounds: [
+                    {
+                        startTimestamp: '10/27/2026 21:31:00.1000',
+                        startPayload: '1504,42,Rated Solo Shuffle,0'
+                    }
+                ]
             },
             {
                 startTimestamp: '10/27/2026 21:40:00.1000',
                 endTimestamp: '10/27/2026 21:47:00.1000',
                 startPayload: '1504,42,Rated Solo Shuffle,1',
-                endPayload: '1'
-            },
+                endPayload: '1',
+                rounds: [
+                    {
+                        startTimestamp: '10/27/2026 21:40:00.1000',
+                        startPayload: '1504,42,Rated Solo Shuffle,1'
+                    }
+                ]
+            }
         ]);
     });
 
@@ -88,13 +106,19 @@ describe('detectArenaMatches', () => {
             {
                 endPayload: null,
                 endTimestamp: null,
-                startPayload: "1504,42,Rated Solo Shuffle,0",
-                startTimestamp: "10/27/2026 21:31:00.1000",
+                startPayload: '1504,42,Rated Solo Shuffle,0',
+                startTimestamp: '10/27/2026 21:31:00.1000',
+                rounds: [
+                    {
+                        startTimestamp: '10/27/2026 21:31:00.1000',
+                        startPayload: '1504,42,Rated Solo Shuffle,0'
+                    }
+                ]
             }
         ]);
     });
 
-    it('detects a second start before first end', async () => {
+    it('groups consecutive Solo Shuffle starts before an end', async () => {
         const file = new File(
             [
                 '10/27/2026 21:31:00.1000  ARENA_MATCH_START,1504,42,Rated Solo Shuffle,0\n',
@@ -112,16 +136,20 @@ describe('detectArenaMatches', () => {
         expect(matches).toEqual([
             {
                 startTimestamp: '10/27/2026 21:31:00.1000',
-                endTimestamp: null,
-                startPayload: '1504,42,Rated Solo Shuffle,0',
-                endPayload: null
-            },
-            {
-                startTimestamp: '10/27/2026 21:40:00.1000',
                 endTimestamp: '10/27/2026 21:47:00.1000',
-                startPayload: '1504,42,Rated Solo Shuffle,1',
-                endPayload: '1'
-            },
+                startPayload: '1504,42,Rated Solo Shuffle,0',
+                endPayload: '1',
+                rounds: [
+                    {
+                        startTimestamp: '10/27/2026 21:31:00.1000',
+                        startPayload: '1504,42,Rated Solo Shuffle,0'
+                    },
+                    {
+                        startTimestamp: '10/27/2026 21:40:00.1000',
+                        startPayload: '1504,42,Rated Solo Shuffle,1'
+                    }
+                ]
+            }
         ]);
     });
 
@@ -138,5 +166,24 @@ describe('detectArenaMatches', () => {
         const matches = await detectArenaMatches(file);
 
         expect(matches).toEqual([]);
+    });
+
+    it('groups Solo Shuffle rounds into one match', async () => {
+        const file = new File(
+            [
+                '10/22/2026 20:35:41.7381  ARENA_MATCH_START,1911,42,Rated Solo Shuffle,0\n',
+                '10/22/2026 20:36:52.1191  ARENA_MATCH_START,1911,42,Rated Solo Shuffle,0\n',
+                '10/22/2026 20:44:10.1681  ARENA_MATCH_END,-1,25,1803,1806\n'
+            ],
+            'solo-shuffle.txt',
+            { type: 'text/plain' }
+        );
+
+        const matches = await detectArenaMatches(file);
+
+        expect(matches).toHaveLength(1);
+        expect(matches[0].rounds).toHaveLength(2);
+        expect(matches[0].endTimestamp)
+            .toBe('10/22/2026 20:44:10.1681');
     });
 });

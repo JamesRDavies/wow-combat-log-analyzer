@@ -234,3 +234,69 @@ test('processing failure displays error and restores controls', async ({ page })
     page.getByLabel('Combat log file')
   ).toBeEnabled();
 });
+
+test('displays detected arena matches after importing a combat log', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByLabel('Combat log file').setInputFiles({
+    name: 'arena-log.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from(
+      '10/27/2026 21:31:00.1000  ARENA_MATCH_START,1504,42,Rated Solo Shuffle,0\n' +
+      '10/27/2026 21:32:00.1000  SPELL_CAST_SUCCESS,Player-123\n' +
+      '10/27/2026 21:35:00.1000  ARENA_MATCH_END,1\n'
+    )
+  });
+
+  await page.getByRole('button', { name: 'Import Log' }).click();
+
+  // Verify the inspection results
+  await expect(page.locator('#results-content'))
+    .toContainText('Total records inspected: 3');
+
+  // Verify one match was detected
+  await expect(page.locator('#results-content'))
+    .toContainText('Arena Matches (1)');
+
+  const matches = page.locator('#arena-matches .list-group-item');
+
+  await expect(matches).toHaveCount(1);
+
+  // Verify match details
+  await expect(matches.first()).toContainText('Match 1 — End recorded');
+  await expect(matches.first()).toContainText('Rounds: 1');
+
+  await expect(matches.first())
+    .toContainText('Started: 10/27/2026 21:31:00.1000');
+
+  await expect(matches.first())
+    .toContainText('Ended: 10/27/2026 21:35:00.1000');
+
+  // Verify processing completed successfully
+  await expect(page.locator('#processing-label'))
+    .toHaveText('Inspection complete');
+});
+
+test('displays a message when no arena matches are detected', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByLabel('Combat log file').setInputFiles({
+    name: 'no-arena-log.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from(
+      '10/27/2026 21:31:00.1000  ZONE_CHANGE,1504\n' +
+      '10/27/2026 21:32:00.1000  SPELL_CAST_SUCCESS,Player-123\n'
+    )
+  });
+
+  await page.getByRole('button', { name: 'Import Log' }).click();
+
+  await expect(page.locator('#results-content'))
+    .toContainText('Arena Matches (0)');
+
+  await expect(page.locator('#arena-matches'))
+    .toHaveText('No arena matches detected in this log.');
+
+  await expect(page.locator('#processing-label'))
+    .toHaveText('Inspection complete');
+});
