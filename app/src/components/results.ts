@@ -1,3 +1,5 @@
+import type { InspectionResult } from '../parser/log-inspector';
+
 export function renderResults(): string {
   return `
     <section class="card">
@@ -13,5 +15,22 @@ export function renderResults(): string {
 
       </div>
     </section>
+  `;
+}
+
+export function displayInspectionResults(result: InspectionResult): void {
+  const resultsContainer =
+    document.querySelector<HTMLDivElement>('#results-content');
+
+  if (!resultsContainer) {
+    return;
+  }
+
+  resultsContainer.innerHTML = `
+    <h3 class="mb-3">Log Inspection Summary</h3>
+
+    <p>Total records inspected: ${result.totalRecords}</p>
+    <p>Valid records: ${result.validRecords}</p>
+    <p>Malformed records: ${result.malformedRecords}</p>
   `;
 }

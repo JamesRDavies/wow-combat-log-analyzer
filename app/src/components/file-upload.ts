@@ -1,11 +1,18 @@
+import { inspectLog } from "../parser/log-inspector";
+import { displayInspectionResults } from './results';
+
 export function initFileUpload(): void {
   const fileInput = document.querySelector<HTMLInputElement>('#log-file');
   const fileDetails = document.querySelector<HTMLParagraphElement>('#file-details');
   const fileError = document.querySelector<HTMLParagraphElement>('#file-error');
+  const importButton = document.querySelector<HTMLButtonElement>('#import-button');
 
   fileInput?.addEventListener('change', () => {
     const file = fileInput.files?.[0];
     const validationError = validateFile(file);
+    if (importButton) {
+      importButton.disabled = true;
+    }
 
     if (fileError) {
       fileError.textContent = validationError;
@@ -23,30 +30,56 @@ export function initFileUpload(): void {
       const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
 
       fileDetails.textContent = `${file.name} (${sizeMB} MB)`;
+      if (importButton) {
+        importButton.disabled = false;
+      }
     } else if (fileDetails) {
       fileDetails.textContent = '';
     }
   });
+
+
+  importButton?.addEventListener('click', async () => {
+    if (fileInput?.files?.length) {
+      const file = fileInput.files[0];
+      const validationError = validateFile(file);
+
+      if (validationError) {
+        if (fileError) {
+          fileError.textContent = validationError;
+          fileError.hidden = false;
+        }
+      } else{
+        if (fileError) {
+          fileError.textContent = '';
+          fileError.hidden = true;
+        }
+
+        const inspectResult = await inspectLog(file);
+        
+        displayInspectionResults(inspectResult);
+      }
+
+
+    }
+  });
+
 }
 
 
 function validateFile(file: File | undefined): string | null {
-  // Check whether a file was selected
   if (!file) {
     return 'No file selected.';
   }
 
-  // Check the filename extension
   if (!file.name.toLowerCase().endsWith('.txt')) {
     return 'Invalid file type. Please upload a .txt file.';
   }
 
-  // Check whether the file is empty
   if (file.size === 0) {
     return 'Selected file is empty. Please upload a valid combat log file.';
   }
 
-  // Return null if everything is valid
   return null;
 }
 
