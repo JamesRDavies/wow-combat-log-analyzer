@@ -133,3 +133,104 @@ test('clears file details when selection is removed', async ({ page }) => {
   await expect(page.locator('#file-error'))
     .toHaveText('No file selected.');
 });
+
+
+test('successful import displays inspection results', async ({ page }) => {
+  await page.goto('/');
+  // Select a valid combat log file
+  await page.getByLabel('Combat log file').setInputFiles({
+    name: 'valid-log.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from(
+      '10/16/2026 10:05:26.4361  ZONE_CHANGE,1504,"Silvermoon City",0\n' +
+      '10/16/2026 10:05:26.5341  SPELL_AURA_APPLIED,Player-123,Example\n'
+    )
+  });
+
+  // Click the import button
+  await page.getByRole('button', { name: 'Import Log' }).click();
+  
+  // Wait for the inspection results to be displayed
+  await expect(page.locator('#results-content')).toContainText('Log Inspection Summary');
+  await expect(page.locator('#results-content')).toContainText('Total records inspected: 2');
+  await expect(page.locator('#results-content')).toContainText('Valid records: 2');
+  await expect(page.locator('#results-content')).toContainText('Malformed records: 0');
+});
+
+test('completed processing status is displayed after import and controls are enabled', async ({ page }) => {
+
+  await page.goto('/');
+
+  // Select a valid combat log file
+  await page.getByLabel('Combat log file').setInputFiles({
+    name: 'valid-log.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from(
+      '10/16/2026 10:05:26.4361  ZONE_CHANGE,1504,"Silvermoon City",0\n' +
+      '10/16/2026 10:05:26.5341  SPELL_AURA_APPLIED,Player-123,Example\n'
+    )
+  });
+
+  // Click the import button
+  await page.getByRole('button', { name: 'Import Log' }).click();
+
+  // Wait for the processing status to be displayed
+  await expect(page.locator('#processing-status')).toBeVisible();
+
+  // Verify that the processing label indicates completion
+  await expect(page.locator('#processing-label')).toHaveText('Inspection complete');
+
+  // Verify that the import button is enabled after processing
+  await expect(page.getByRole('button', { name: 'Import Log' })).toBeEnabled();
+
+  // Verify that the file input is enabled after processing
+  await expect(page.getByLabel('Combat log file')).toBeEnabled();
+
+});
+
+test('processing failure displays error and restores controls', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByLabel('Combat log file').setInputFiles({
+    name: 'valid-log.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from(
+      '10/16/2026 10:05:26.4361  ZONE_CHANGE,1504,"Silvermoon City",0\n'
+    )
+  });
+
+  // Simulate a failure when reading the selected file
+  await page.evaluate(() => {
+    const fileInput = document.querySelector<HTMLInputElement>('#log-file');
+    const file = fileInput?.files?.[0];
+
+    if (!file) {
+      throw new Error('Test setup failed: no file selected');
+    }
+
+    Object.defineProperty(file, 'stream', {
+      value: () => {
+        throw new Error('Simulated file read failure');
+      }
+    });
+  });
+
+  await page.getByRole('button', { name: 'Import Log' }).click();
+
+  // Verify error message
+  await expect(page.locator('#file-error')).toHaveText(
+    'An error occurred while processing the file.'
+  );
+
+  // Verify processing indicator is hidden
+  await expect(page.locator('#processing-status')).toBeHidden();
+
+  // Verify controls are restored
+  await expect(
+    page.getByRole('button', { name: 'Import Log' })
+  ).toBeEnabled();
+
+  await expect(
+    page.getByLabel('Combat log file')
+  ).toBeEnabled();
+});
